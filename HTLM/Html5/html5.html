@@ -1,0 +1,69 @@
+<!--New Content Models
+Content Models
+
+Metadata: Content that sets up the presentation or behavior of the rest of the content. These elements are found in the head of the document.
+Elements:  <base>, <link>, <meta>, <noscript>, <script>, <style>, <title>
+
+Embedded: Content that imports other resources into the document.
+Elements:  <audio>,  <video>, <canvas>, <iframe>, <img>, <math>, <object>, <svg>
+
+Interactive: Content specifically intended for user interaction.
+Elements: <a>, <audio>, <video>, <button>, <details>, <embed>, <iframe>, <img>, <input>, <label>, <object>, <select>, <textarea>
+
+Heading:  Defines a section header.
+Elements: <h1>, <h2>, <h3>, <h4>, <h5>, <h6>, <hgroup>
+
+Phrasing: This model has a number of inline level elements in common with HTML4.
+Elements: <img>, <span>, <strong>, <label>, <br />, <small>, <sub>, and more.
+-->
+<<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+  </head>
+  <body>
+      <header>
+        <h1> Most important heading </h1>
+        <h3> Less important heading </h3>
+         <nav>
+           <ul>
+             <li> <a href="#">Home</a></li>
+             <li> <a href="#">Services</a></li>
+             <li> <a href="#">About</a></li>
+
+          <article class="">
+            <section>
+              <h1> Wellcome </h1>
+              <p> Principal content or image </p>
+            </section>
+            <aside class="">
+              Secondary or tangential content
+            </aside>
+          </article>
+        <!--  <footer> </footer>-->
+        </nav>
+      </header>
+      <audio src="guille.mp3" controls autoplay>
+        Audio element not supported by your browser
+      </audio>
+      <audio controls loop>
+        <source src="guille.mp3" type="audio/mpeg" >
+        <!--  <source src="audio.ogg" type="audio/ogg"> -->
+      </audio>
+      <video controls autoplay loop src="Adri.mp4" autoplay poster="posterimage.jpg">
+        Video element not supported by your browser
+      </video>
+      <video controls>
+        <source src="video.mp4" type="video/mp4"> <!--o también  .ogg-->
+      </video>
+      <br>
+        <!--
+        The <progress> element provides the ability to create progress bars on the web.
+        The progress element can be used within headings, paragraphs, or anywhere else in the body.
+        Progress Element Attributes
+        Value: Specifies how much of the task has been completed.
+        Max: Specifies how much work the task requires in total-->
+        <progress min="0" max="100" value="35" >0%</progress>
+  </body>
+</html>
