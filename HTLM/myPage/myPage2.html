@@ -1,12 +1,32 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
+  <script>
+  function allowDrop(ev) {
+      ev.preventDefault();
+  }
+
+  function drag(ev) {
+      ev.dataTransfer.setData("text", ev.target.id);
+  }
+
+  function drop(ev) {
+      ev.preventDefault();
+      var data = ev.dataTransfer.getData("text");
+      ev.target.appendChild(document.getElementById(data));
+  }
+  </script>
     <meta charset="utf-8">
     <title></title>
   </head>
   <body>
+    <div id="box" ondrop="drop(event)"
+    ondragover="allowDrop(event)"
+    style="border:1px solid black;
+    width:200px; height:200px"></div>
     <h1 align="center">CONGRATULATIONS</h1>
-    <video src="Adri.mp4" autoplay poster="posterimage.jpg">
+    <video id="image" src="Adri.mp4" autoplay poster="posterimage.jpg" draggable="true" ondragstart="drag(event)">
+    <img draggable="true" alt="" border="5%" height="100%" width="100%" />
       There is a problem with this awesome video
     </video>
   </body>
