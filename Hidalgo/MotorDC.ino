@@ -15,46 +15,75 @@ public:
     Voltage = 12; // by default it's supposed to be connected to 12 V
     lastSpeed = 0; // by default it's supposed to start stopped
   }
+  int getDIR()
+  {
+    return DIR;
+  }
+  int getPWM()
+  {
+    return PWM;
+  }
   MotorDC(int dir, int pwm, float V = 12): DIR(dir), PWM(pwm), Voltage(V) {}
-  void SetMotorSpeed(float speed) // the speed is supposed to come in rmp
+  void SetMotorSpeed(float Speed) // the speed is supposed to come in rmp
   {
     int val; // value that's going to go between 0-255 in relation to the porcentual speed
     int lastval; // value that's going to go between 0-255 in relation to the porcentual last speed
-    val = map(speed, 0, 100, 0, 255); // transforms the speed to the analog value
+    val = map(Speed, 0, 100, 0, 255); // transforms the speed to the analog value
     lastval = map(lastSpeed, 0, 100, 0, 255); // transforms the last speed to the analog value
+    Serial.println("----------------");
+    Serial.print("val: ");
+    Serial.println(val);
+    Serial.print("lastval: ");
+    Serial.println(lastval);
+
     if(val > lastval)
     {
       int abs = val - lastval; // determines the increase
       for (int i = lastval; i <= val; i++)
       {
         analogWrite(PWM, i); //accelerates "slowly"
+        Serial.print("accelarating ");
+        Serial.println(i);
         delay(50);
       }
     }
     else
     {
       int abs = lastval - val; // determines the increase
-      for (int i = val; i >= lastval; i--)
+      for (int i = lastval; i >= val; i--)
       {
-        analogWrite(PWM, i); //accelerates "slowly"
+        analogWrite(PWM, i); //decelerates "slowly"
+        Serial.print("decelarating ");
+        Serial.println(i);
         delay(50);
       }
     }
-
+  lastSpeed = Speed; // updates the value
   }
 
 };
 
+MotorDC M;
+
 void setup() {
   // put your setup code here, to run once:
-  pinMode(PWM, OUTPUT);
-  pinMode(DIR, OUTPUT);
+
+
+  pinMode(M.getPWM(), OUTPUT);
+  pinMode(M.getDIR(), OUTPUT);
 
   Serial.begin(9600);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  digitalWrite(DIR, HIGH);
-
+  digitalWrite(M.getDIR(), HIGH);
+  M.SetMotorSpeed(50);
+  delay(500);
+  M.SetMotorSpeed(100);
+  delay(500);
+  M.SetMotorSpeed(25);
+  delay(500);
+  M.SetMotorSpeed(75);
+  delay(500);
 }
