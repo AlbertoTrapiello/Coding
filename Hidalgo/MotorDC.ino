@@ -86,15 +86,26 @@ public:
   }
   void SetMotorPosition(float angle)
   {
+    float portion; // variable that affects the speed
     if(angle > lastangle)
     {
       MotorDC::setDIR(RIGHT); // determines the turning Direction
-      MotorDC::SetMotorSpeed(50);
+      while(analogRead(POT) != angle)
+      {
+        int aux = map(analogRead(POT), 0, 360, 0, 255); // translates the value of the reading to an angle
+        portion = 100*(angle - aux)/360; // calculation of the portion so that when the angle is far it goes faster
+        SetMotorSpeed(portion); // it modifies the speed, so that when the angle is close it slows
+      }
     }
     else
     {
       MotorDC::setDIR(LEFT); // determines the turning Direction
-      MotorDC::SetMotorSpeed(50);
+      while(analogRead(POT) != angle) // while the motor doesn't reach the angle y continues rotating
+      {
+        int aux = map(analogRead(POT), 0, 360, 0, 255); // translates the value of the reading to an angle
+        portion = 100*(aux - angle)/360; // calculation of the portion so that when the angle is far it goes faster
+        SetMotorSpeed(portion); // it modifies the speed, so that when the angle is close it slows
+      }
     }
   }
   void SetMotorSpeed(float Speed) // the speed is supposed to come in rmp
