@@ -1,7 +1,8 @@
 #define SLOW 150
 #define FAST 50
+#define BOOST 2
 
-enum Dir {RIGHT = HIGH, LEFT = LOW} Direction;
+enum Dir {RIGHT = 1, LEFT = 0} Direction;
 
 int SpeedRegulation (int Speedinc) // Function in charge of regulating the delay, so that it can accelerate/decelerate depending on the speed increase
 {
@@ -43,13 +44,16 @@ int CheckSpeed (int Speed, int Voltage) // Simple check so that the speed isn't 
 
 class MotorDC
 {
+  //PINS
   int DIR; // pin used to decide in wich direction does the motor rotate
   int PWM; // pin used to decide the pwm for the motor
+  int POT; // pin used to read the position
+  //VARIABLES
   int K; //Relación de transformación;
   float lastSpeed; //saves the last speed
   int lastDIR; // variable with the las direction
-  float Voltage; //Voltage
-
+  float Voltage; // Voltage
+  float lastangle; // value of the angle
 public:
   MotorDC()
   {
@@ -57,6 +61,7 @@ public:
     PWM = 3; // by default these is supposed to be the pwm pin
     Voltage = 12; // by default it's supposed to be connected to 12 V
     lastSpeed = 0; // by default it's supposed to start stopped
+    lastangle = analogRead(POT); // start reading the position
   }
   int getDIR()
   {
@@ -67,16 +72,32 @@ public:
     return PWM;
   }
   MotorDC(int dir, int pwm, float V = 12): DIR(dir), PWM(pwm), Voltage(V) {}
-  void setDIR (int dir) // it changes the direction
+  void setDIR (int dir, bool brake = false) // it changes the direction
   {
-    if(lastDIR != DIR)
+    if(brake)
     {
-      MotorDC::SetMotorSpeed(0);
+      if(lastDIR != dir) // if it has to change the direction, it first has to slow down
+      {
+        MotorDC::SetMotorSpeed(0); // slows down before changing the direction
+      }
     }
-    DIR = dir;
-
+    lastDIR = dir; // actualize the lastDIR value
+    digitalWrite(DIR, dir); // set direction in wich the motor turns
   }
-  void SetMotorSpeed(float Speed, bool brake = false) // the speed is supposed to come in rmp
+  void SetMotorPosition(float angle)
+  {
+    if(angle > lastangle)
+    {
+      MotorDC::setDIR(RIGHT); // determines the turning Direction
+      MotorDC::SetMotorSpeed(50);
+    }
+    else
+    {
+      MotorDC::setDIR(LEFT); // determines the turning Direction
+      MotorDC::SetMotorSpeed(50);
+    }
+  }
+  void SetMotorSpeed(float Speed) // the speed is supposed to come in rmp
   {
     int val; // value that's going to go between 0-255 in relation to the porcentual speed
     int lastval; // value that's going to go between 0-255 in relation to the porcentual last speed
@@ -94,26 +115,28 @@ public:
     {
       int abs = val - lastval; // determines the increase
 
-      for (int i = lastval; i <= val; i++)
+      for (int i = lastval; i <= val; i = i + BOOST) // it cycles at certain rate, depending on the boost value
       {
         analogWrite(PWM, i); //accelerates "slowly"
         Serial.print("accelarating ");
         Serial.println(i);
-        if(!brake)
-          delay(SpeedRegulation(abs)); // the delay varies depending of the increase
-
+        delay(SpeedRegulation(abs)); // the delay varies depending of the increase
       }
     }
     else
     {
       int abs = lastval - val; // determines the increase
-      for (int i = lastval; i >= val; i--)
+      for (int i = lastval; i >= val; i = i - BOOST) // it cycles at certain rate, depending on the boost value
       {
+        if(i < 0) // if the value is negative it prevents the motor from having an error
+          i = 0;
         analogWrite(PWM, i); //decelerates "slowly"
         Serial.print("decelarating ");
         Serial.println(i);
-        if(!brake)
+        if(val != 0) // if the value is 0 then it isn't suppoused to makes any delay
           delay(SpeedRegulation(abs)); // the delay varies depending of the increase
+        else
+          i++;
       }
     }
   lastSpeed = Speed; // updates the value
@@ -136,17 +159,17 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   digitalWrite(M.getDIR(), HIGH);
-  M.setDIR(RIGHT);
+  M.setDIR(RIGHT, true);
   M.SetMotorSpeed(50);
   //delay(500);
-  M.setDIR(LEFT);
+  M.setDIR(LEFT, true);
   M.SetMotorSpeed(100);
   //delay(500);
-  M.setDIR(RIGHT);
+  M.setDIR(RIGHT, true);
   M.SetMotorSpeed(25);
   //delay(500);
-  M.setDIR(LEFT);
+  M.setDIR(LEFT, true);
   M.SetMotorSpeed(75);
   //delay(500);
-  M.setDIR(RIGHT);
+  M.setDIR(RIGHT, true);
 }
