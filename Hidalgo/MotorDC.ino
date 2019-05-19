@@ -1,6 +1,6 @@
-#define SLOW 150
-#define FAST 50
-#define BOOST 2
+#define SLOW 150 //limit of Speedinc that determines that the motor is rotating slow
+#define FAST 50 //limit of Speedinc that determines that the motor is rotating fast
+#define BOOST 2 // boosts the speed that it accelerates o decelerates
 
 enum Dir {RIGHT = 1, LEFT = 0} Direction;
 
@@ -8,6 +8,7 @@ int SpeedRegulation (int Speedinc) // Function in charge of regulating the delay
 {
   // DECIDE WICH RANGE OF SPEED IS OKEY TO GO "FULL" SPEED AND WICH NOT
   // Have in mind that it is in the loop, so it will naturally go changing the speed as the increase is reduced
+
   if(Speedinc > FAST) // if the increment is big enough, the delay should be high so that it goes slowly
   {
     return 40;
@@ -144,7 +145,7 @@ public:
         analogWrite(PWM, i); //decelerates "slowly"
         Serial.print("decelarating ");
         Serial.println(i);
-        if(val != 0) // if the value is 0 then it isn't suppoused to makes any delay
+        if(val != 0) // if the value is 0 then it isn't suppoused to makes any delay (so that it slows faster)
           delay(SpeedRegulation(abs)); // the delay varies depending of the increase
         else
           i++;
@@ -159,7 +160,6 @@ MotorDC M;
 
 void setup() {
   // put your setup code here, to run once:
-
 
   pinMode(M.getPWM(), OUTPUT);
   pinMode(M.getDIR(), OUTPUT);
