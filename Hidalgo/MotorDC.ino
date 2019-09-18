@@ -119,7 +119,7 @@ public:
       SetMotorSpeed(portion); // it modifies the speed, so that when the angle is close it slows
     }
   }
-  
+
   void SetMotorSpeed(float Speed) // the speed is supposed to come in rmp
   {
     int val; // value that's going to go between 0-255 in relation to the porcentual speed
