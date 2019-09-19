@@ -1,6 +1,6 @@
 #define SLOW 150
 #define FAST 50
-#define BOOST 2
+#define BOOST 1
 
 //DC MOTOR CHARACTERISTICS
 #define DC_V 12 //The motor's DC Voltage
@@ -27,7 +27,7 @@ int SpeedRegulation (int Speedinc) // Function in charge of regulating the delay
 int CheckSpeed (int Speed, int Voltage) // Simple check so that the speed isn't negative or too high
 {
   //DO A RELATION IN FUNCTION OF THE VOLTAGE WITH THE VALUES OF THE DATA SHEET
-  if((Speed > 0)) // Checks if the speed is positive
+  if((Speed >= 0)) // Checks if the speed is positive
   {
     switch (Voltage) {
       case 12:
@@ -45,9 +45,39 @@ int CheckSpeed (int Speed, int Voltage) // Simple check so that the speed isn't 
       INITIALLY IT DOESN'T MATTER THE VOLTAGE, IT JUST MATTER THE RALTIONSHIP BETWEEEN VOLTAGE AND RMP, DEPENDING ON THE TABLE*/
     }
   }
+  Serial.println("ERROR Speed can't be negative");
   return 0;
 }
 
+//POTENTIOMETER
+class Potentiometer
+{
+  int pin_POT; // pin use to read the potentiometer analog input
+
+public:
+  //CONSTRUCTOR
+  Potentiometer()
+  {
+    pin_POT = A0; // by default these is supposed to be the potentiometer's pin
+  }
+
+  //FUNCTIONS
+  int getpin_POT()
+  {
+    return pin_POT;
+  }
+  int ReadAngle()
+  {
+    int angle; // value of the angle read by the analog input
+    angle = map(analogRead(pin_POT), 0, 360, 0, 255); // translates the value of the reading to an angle
+    if(angle >= 0)
+      return angle;
+    Serial.println("ERROR Angle here can't be negative");
+    return -1; // ERROR
+  }
+};
+
+//MOTOR
 class MotorDC
 {
   //PINS
@@ -57,32 +87,36 @@ class MotorDC
 
   //VARIABLES
   int K = 0; //Relación de transformación;
-  float lastSpeed = 0; //saves the last speed
   int lastDIR = 0; // variable with the las direction
+  float lastSpeed = 0; //saves the last speed
+  float lastAngle = 0; // value of the angle
   //float Voltage = 0; // Voltage
-  float lastangle = 0; // value of the angle
+
+  //POTENTIOMETER
+  Potentiometer potentiometer; //object from the class potentiometer, used to establish the angle of the rotation
 
 public:
   //CONSTRUCTOR
-  MotorDC()
+  MotorDC():potentiometer()
   {
      pin_DIR= 2; // by default these is supposed to be the direction pin
      pin_PWM = 3; // by default these is supposed to be the pwm pin
+     pin_POS = potentiometer.getpin_POT(); // it reads the supposed pin for the potentiometer
      Voltage = 12; // by default it's supposed to be connected to 12 V
      lastSpeed = 0; // by default it's supposed to start stopped
-     lastangle = analogRead(POT); // start reading the position
+     lastAngle = potentiometer.ReadAngle; // start reading the position
   }
 
-  MotorDC(int dir, int pwm, float V = DC_V): DIR(dir), PWM(pwm), Voltage(V) {}
+  MotorDC(int dir, int pwm, float V = DC_V): potentiometer(), DIR(dir), PWM(pwm), Voltage(V) {}
 
   //FUNCTIONS
 
-  int getDIR() // returns the DIR value
+  int getpin_DIR() // returns the DIR value
   {
     return DIR;
   }
 
-  int getPWM() // returns the PWM value
+  int getpin_PWM() // returns the PWM value
   {
     return PWM;
   }
@@ -104,7 +138,7 @@ public:
   {
     float portion; // variable that affects the speed at wich the motor turns
 
-    if(angle > lastangle) // if the angle needed is higher than the actual angle, I assume that the motor needs to turn RIGHT
+    if(angle > lastAngle) // if the angle needed is higher than the actual angle, I assume that the motor needs to turn RIGHT
     {
       MotorDC::setDIR(RIGHT); // determines the turning Direction
     }
@@ -113,11 +147,15 @@ public:
       MotorDC.setDIR(LEFT); // determines the turning Direction
     }
 
-    while(analogRead(POT) != angle)
+    while(potentiometer.ReadAngle() != angle)
     {
-      portion = 100*(angle - potentiometer.ReadAngle())/360; // calculation of the portion so that when the angle is far it goes faster
-      SetMotorSpeed(portion); // it modifies the speed, so that when the angle is close it slows
+      if(potentiometer.ReadAngle != -1)
+      {
+        portion = 100*(angle - potentiometer.ReadAngle())/360; // calculation of the portion so that when the angle is far it goes faster
+        SetMotorSpeed(portion); // it modifies the speed, so that when the angle is close it slows
+      }
     }
+    lastAngle = potentiometer.ReadAngle; // updates the value of the last Angle to the actual Angle;
   }
 
   void SetMotorSpeed(float Speed) // the speed is supposed to come in rmp
@@ -126,19 +164,19 @@ public:
     int lastval; // value that's going to go between 0-255 in relation to the porcentual last speed
     Speed = CheckSpeed(Speed, Voltage); // small check so that the speed makes sense
 
-    val = map(Speed, 0, 100, 0, 255); // transforms the speed to the analog value
-    lastval = map(lastSpeed, 0, 100, 0, 255); // transforms the last speed to the analog value
+    val = map(Speed, 0, NL_rmp, 0, 255); // transforms the speed to the analog value
+    lastval = map(lastSpeed, 0, NL_rmp, 0, 255); // transforms the last speed to the analog value
     Serial.println("----------------");
     Serial.print("val: ");
     Serial.println(val);
     Serial.print("lastval: ");
     Serial.println(lastval);
 
-    if(val > lastval)
+    if(val > lastval) // If the Speed is rgeater than the last recorded Speed
     {
       int abs = val - lastval; // determines the increase
 
-      for (int i = lastval; i <= val; i = i + BOOST) // it cycles at certain rate, depending on the boost value
+      for (int i = lastval; i <= val; i = i * BOOST) // it cycles at certain rate, depending on the boost value
       {
         analogWrite(PWM, i); //accelerates "slowly"
         Serial.print("accelarating ");
@@ -149,7 +187,7 @@ public:
     else
     {
       int abs = lastval - val; // determines the increase
-      for (int i = lastval; i >= val; i = i - BOOST) // it cycles at certain rate, depending on the boost value
+      for (int i = lastval; i >= val; i = i * BOOST) // it cycles at certain rate, depending on the boost value
       {
         if(i < 0) // if the value is negative it prevents the motor from having an error
           i = 0;
@@ -172,16 +210,16 @@ MotorDC M;
 void setup() {
   // put your setup code here, to run once:
 
-
-  pinMode(M.getPWM(), OUTPUT);
-  pinMode(M.getDIR(), OUTPUT);
+  pinMode(M.getpin_PWM(), OUTPUT); //establish the pin for the PWM
+  pinMode(M.getpin_DIR(), OUTPUT); //establish the pin for the DIR
+  pinMode(M.potentiometer.getpin_POT()); //establish the pin for the POT
 
   Serial.begin(9600);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  digitalWrite(M.getDIR(), HIGH);
+  digitalWrite(M.getpin_DIR(), HIGH);
   M.setDIR(RIGHT, true);
   M.SetMotorSpeed(50);
   //delay(500);
