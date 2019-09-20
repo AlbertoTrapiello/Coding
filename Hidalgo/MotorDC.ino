@@ -9,17 +9,38 @@
 
 enum Dir {RIGHT = 1, LEFT = 0} Direction;
 
+double computePID (double in)
+{
+  double kp = 2;
+  double ki = 5;
+  double kd = 1;
+
+  currentTime = millis(); // get current time
+  elapsedTime = (double)(currentTime - previousTime); // compute time elapsed from previous computation
+
+  error = Setpoint - inp; // determine error
+  cumError += error * elapsedTime; // compute integral
+  rateError = (error - lastError)/elapsedTime; // compute derivative
+
+   double out = kp*error + ki*cumError + kd*rateError;  //PID output
+
+   lastError = error; //remember current error
+   previousTime = currentTime; //remember current time
+
+   return out;
+}
+
 int SpeedRegulation (int Speedinc) // Function in charge of regulating the delay, so that it can accelerate/decelerate depending on the speed increase
 {
   // DECIDE WICH RANGE OF SPEED IS OKEY TO GO "FULL" SPEED AND WICH NOT
   // Have in mind that it is in the loop, so it will naturally go changing the speed as the increase is reduced
-  if(Speedinc > FAST) // if the increment is big enough, the delay should be high so that it goes slowly
-  {
-    return 40;
-  }
-  if(Speedinc < SLOW) // if the increment is small enough, the delay should be small so that it goes faster
+  if(Speedinc > FAST) // if the increment is big enough, the delay should be small so that it goes faster
   {
     return 5;
+  }
+  if(Speedinc < SLOW) // if the increment is small enough, the delay should be high so that it goes slowly
+  {
+    return 40;
   }
   return 20; // by default it should goes 50
 }
@@ -46,7 +67,7 @@ int CheckSpeed (int Speed, int Voltage) // Simple check so that the speed isn't 
     }
   }
   Serial.println("ERROR Speed can't be negative");
-  return 0;
+  return -1;
 }
 
 //POTENTIOMETER
@@ -86,11 +107,13 @@ class MotorDC
   int pin_POS; // pin used to read the position
 
   //VARIABLES
-  int K = 0; //Relación de transformación;
+  int K = 0; // Relación de transformación;
   int lastDIR = 0; // variable with the las direction
   int BOOST  = 1; // Variable that determines the speed at wich the motor accelerates or deccelerates
   float lastSpeed = 0; //saves the last speed
   float lastAngle = 0; // value of the angle
+  int val; // value that's going to go between 0-255 in relation to the porcentual speed
+  int lastval; // value that's going to go between 0-255 in relation to the porcentual last speed
   float Voltage = 0; // Voltage
 
   //POTENTIOMETER
@@ -153,61 +176,63 @@ public:
     {
       MotorDC::setDIR(LEFT); // determines the turning Direction
     }
-
+    Speed = computePID(angle);
+    /*
     while(potentiometer.ReadAngle() != angle)
     {
       if(potentiometer.ReadAngle() != -1)
       {
-        portion = 100*(angle - potentiometer.ReadAngle())/360; // calculation of the portion so that when the angle is far it goes faster
+        portion = NL_rpm*(angle - potentiometer.ReadAngle())/360; // calculation of the portion so that when the angle is far it goes faster
         SetMotorSpeed(portion); // it modifies the speed, so that when the angle is close it slows
       }
     }
+    */
     lastAngle = potentiometer.ReadAngle(); // updates the value of the last Angle to the actual Angle;
   }
 
   void SetMotorSpeed(float Speed) // the speed is supposed to come in rmp
   {
-    int val; // value that's going to go between 0-255 in relation to the porcentual speed
-    int lastval; // value that's going to go between 0-255 in relation to the porcentual last speed
-    Speed = CheckSpeed(Speed, Voltage); // small check so that the speed makes sense
-
-    val = map(Speed, 0, NL_rpm, 0, 255); // transforms the speed to the analog value
-    lastval = map(lastSpeed, 0, NL_rpm, 0, 255); // transforms the last speed to the analog value
-    Serial.println("----------------");
-    Serial.print("Speed: ");
-    Serial.println(Speed);
-    Serial.print("lastSpeed: ");
-    Serial.println(lastSpeed);
-    Serial.print("val: ");
-    Serial.println(val);
-    Serial.print("lastval: ");
-    Serial.println(lastval);
-
-    int abs = val - lastval; //determines the increase
-
-    if(val > lastval) // If the Speed is greater than the last recorded Speed
+    if (CheckSpeed(Speed, Voltage))// small check so that the speed makes sense
     {
-      for (int i = lastval; i <= val; i = i + BOOST) // it cycles at certain rate, depending on the boost value
+      val = map(Speed, 0, NL_rpm, 0, 255); // transforms the speed to the analog value
+      lastval = map(lastSpeed, 0, NL_rpm, 0, 255); // transforms the last speed to the analog value
+      Serial.println("----------------");
+      Serial.print("Speed: ");
+      Serial.println(Speed);
+      Serial.print("lastSpeed: ");
+      Serial.println(lastSpeed);
+      Serial.print("val: ");
+      Serial.println(val);
+      Serial.print("lastval: ");
+      Serial.println(lastval);
+
+      int abs = val - lastval; //determines the increase
+
+      if(val > lastval) // If the Speed is greater than the last recorded Speed
       {
-        analogWrite(pin_PWM, i); //accelerates "slowly"
-        Serial.print("accelarating ");
-        Serial.println(i);
-        delay(SpeedRegulation(255 - abs)); // the delay varies depending of the increase
+        for (int i = lastval; i <= val; i = i + BOOST) // it cycles at certain rate, depending on the boost value
+        {
+          analogWrite(pin_PWM, i); //accelerates "slowly"
+          Serial.print("accelarating ");
+          Serial.println(i);
+          delay(SpeedRegulation(abs)); // the delay varies depending of the increase
+        }
       }
-    }
-    else if (val < lastval)
-    {
-      for (int i = lastval; i >= val; i = i - BOOST) // it cycles at certain rate, depending on the boost value
+      else if (val < lastval)
       {
-        if(i < 0) // if the value is negative it prevents the motor from having an error
-          i = 0;
-        Serial.print("decelarating ");
-        Serial.println(i);
-        analogWrite(pin_PWM, i); //decelerates "slowly"
-        delay(SpeedRegulation(255 - abs)); // the delay varies depending of the increase
+        for (int i = lastval; i >= val; i = i - BOOST) // it cycles at certain rate, depending on the boost value
+        {
+          if(i < 0) // if the value is negative it prevents the motor from having an error
+            i = 0;
+          Serial.print("decelarating ");
+          Serial.println(i);
+          analogWrite(pin_PWM, i); //decelerates "slowly"
+          delay(SpeedRegulation(abs)); // the delay varies depending of the increase
+        }
       }
+
     }
-  lastSpeed = Speed; // updates the value
+    lastSpeed = Speed; // updates the value
   }
 
 };
