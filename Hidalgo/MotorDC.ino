@@ -80,6 +80,11 @@ public:
     Serial.println("ERROR Angle here can't be negative");
     return -1; // ERROR
   }
+  void PrintAngle ()
+  {
+    Serial.print("The Actual Value of the angle is: ")
+    Serial.println(Potentiometer::ReadAngle()); // prints the value of the angle readed
+  }
 };
 
 //MOTOR
@@ -162,13 +167,20 @@ public:
 
     if(angle > 0 )
     {
-      MotorDC::setDIR(RIGHT); // assuming the positive value should be
+      MotorDC::setDIR(RIGHT); // assuming the positive value should be RIGHT
+    }
+    else
+    {
+      MotorDC::setDIR(LEFT); // assuming the negative value should be LEFT
     }
 
     int pwm_speed = map (Speed, 0, NL_rpm, 0, 255); // Translates the Speed to an analog value for the PWM signal
     analogWrite(pin_PWM, pwm_speed); // Sets the motor to rotate full speed
     delay(time_delay); // Keeps the motor turning during the estimated time_delay
     analogWrite(pin_PWM, 0); // Stops the motor from turning
+
+    potentiometer.PrintAngle(); // prints the value of the angle
+
     totalAngle += (angle - lastAngle); // accumulates the angle at which the motor is right now
     lastAngle = angle; // updates the angle to the current value
 
@@ -180,7 +192,7 @@ public:
   }
   void TurnBack () // Turns in the other direction the same amount of angle that earlier was turned
   {
-    M.SetMotorPosition(-lastAngle); // turns the same amount that he has turned the last time 
+    M.SetMotorPosition(-lastAngle); // turns the same amount that he has turned the last time
   }
 };
 
