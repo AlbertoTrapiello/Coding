@@ -1,13 +1,15 @@
 #define SLOW 150
 #define FAST 50
-#define MAX_ANGLE 340
-#define CHECK 4
+#define MAX_ANGLE 340 // maximum angle that the potentiometer can measure correctly
+#define MAX_POT 1023 // maximum value of the analog read available for the potentiometer
+#define MIN_POT 0 // minimum value of the analog read available for the potentiometer
+#define MAX_CHECK 4 // number of consecutive checks that the potentiometer does before assuring is a correct value
 
 //DC MOTOR CHARACTERISTICS
 #define DC_V 12 //The motor's DC Voltage
 #define NL_rpm 100  //The motor's rpm
 
-enum Direction {RIGHT = 1, LEFT = 0};
+enum Direction {RIGHT = 1, LEFT = 0, NONE = -1};
 
 /*double computePID (double inp)
 {
@@ -74,16 +76,16 @@ public:
   {
     return pin_POT;
   }
-  float ReadAngle(Direction Dir = RIGHT)
+  float ReadAngle(Direction Dir = NONE)
   {
     float angle; // value of the angle read by the analog input
-    if(Potentiometer::CheckNoise(DIR))
+    if(Potentiometer::CheckNoise(Dir))
       angle = map(input, 0, 360, 0, 255); // translates the value of the reading to an angle
 
     Serial.println("ERROR Angle here can't be negative");
     return -1; // ERROR
   }
-  bool CheckNoise(Direction Dir = RIGHT) // Function responsible to avoid the fake values
+  bool CheckNoise(Direction Dir = NONE) // Function responsible to avoid the fake values
   {
     bool output[MAX_CHECK];
     int error = 0;
@@ -101,25 +103,26 @@ public:
       Serial.print("LAST INPUT: ");
       Serial.println(lastInput); // prints the value of the analogRead
       Serial.println("**********************");*/
-
-      if(Dir == RIGHT)
+      if(Dir != NONE)
       {
-        if(input >= lastInput)
-          output[i] = true;
+        if(Dir == RIGHT)
+        {
+          if(input >= lastInput)
+            output[i] = true;
+          else
+            output[i] = false;
+        }
+        else if(Dir == LEFT)
+        {
+          if(input <= lastInput)
+            output[i] = true;
+          else
+            output[i] = false;
+        }
         else
           output[i] = false;
+        lastInput = input;
       }
-      else if(Dir == LEFT)
-      {
-        if(input <= lastInput)
-          output[i] = true;
-        else
-          output[i] = false;
-      }
-      else
-        output[i] = false;
-      lastInput = input;
-
       //PRINTED CHECK
       /*
       Serial.print("Output[i]: ");
@@ -140,10 +143,10 @@ public:
     else
       return true;
   }
-  void PrintAngle ()
+  void PrintAngle (Direction Dir = NONE)
   {
     Serial.print("The Actual Value of the angle is: ");
-    Serial.println(Potentiometer::ReadAngle()); // prints the value of the angle readed
+    Serial.println(map(lastInput, 0, MAX_ANGLE, MIN_POT, MAX_POT)); // prints the value of the angle readed
   }
 };
 
@@ -180,7 +183,7 @@ public:
      pin_POS = potentiometer.getpin_POT(); // it reads the supposed pin for the potentiometer
      Voltage = 12; // by default it's supposed to be connected to 12 V
      lastSpeed = 0; // by default it's supposed to start stopped
-     zeroAngle = lastAngle = potentiometer.ReadAngle(); // start reading the position
+     zeroAngle = lastAngle = potentiometer.ReadAngle(NONE); // start reading the position
   }
 
   MotorDC(int dir, int pwm, float V = DC_V): potentiometer(), pin_DIR(dir), pin_PWM(pwm), Voltage(V) {}
@@ -240,7 +243,7 @@ public:
     delay(time_delay); // Keeps the motor turning during the estimated time_delay
     analogWrite(pin_PWM, 0); // Stops the motor from turning
 
-    potentiometer.PrintAngle(); // prints the value of the angle
+    //potentiometer.PrintAngle(); // prints the value of the angle
 
     totalAngle += (angle - lastAngle); // accumulates the angle at which the motor is right now
     lastAngle = angle; // updates the angle to the current value
@@ -254,6 +257,11 @@ public:
   void TurnBack () // Turns in the other direction the same amount of angle that earlier was turned
   {
     MotorDC::SetMotorPosition(-lastAngle); // turns the same amount that he has turned the last time
+  }
+  void ReadAngle ()
+  {
+    potentiometer.ReadAngle(lastDIR); // Reads the actual angle of the potentiometer
+    potentiometer.PrintAngle(); // pritns the value readed
   }
 };
 
@@ -277,6 +285,7 @@ void loop() {
   //TURNS 45 DEGREES
   M.SetMotorPosition(45);
   delay(500);
+  M.ReadAngle();
   M.TurnBack(); // Goes Back the same amount that it turned last time
   //TURNS 90 DEGREES
   M.SetMotorPosition(90);
