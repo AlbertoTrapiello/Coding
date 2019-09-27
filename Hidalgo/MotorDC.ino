@@ -6,7 +6,7 @@
 #define DC_V 12 //The motor's DC Voltage
 #define NL_rpm 100  //The motor's rpm
 
-enum Dir {RIGHT = 1, LEFT = 0} Direction;
+enum Direction {RIGHT = 1, LEFT = 0};
 
 /*double computePID (double inp)
 {
@@ -82,7 +82,7 @@ public:
   }
   void PrintAngle ()
   {
-    Serial.print("The Actual Value of the angle is: ")
+    Serial.print("The Actual Value of the angle is: ");
     Serial.println(Potentiometer::ReadAngle()); // prints the value of the angle readed
   }
 };
@@ -105,7 +105,8 @@ class MotorDC
   int val; // value that's going to go between 0-255 in relation to the porcentual speed
   int lastval; // value that's going to go between 0-255 in relation to the porcentual last speed
   float Voltage = 0; // Voltage
-
+  int totalAngle = 0; // Value of the accumulated turns
+  int zeroAngle = 0; // Value of the analogRead of the Zero
   //POTENTIOMETER
   Potentiometer potentiometer; //object from the class potentiometer, used to establish the angle of the rotation
 
@@ -188,11 +189,11 @@ public:
   }
   void TurnToZero () // Function that allows the motor to return to 0;
   {
-    M.SetMotorPosition(-totalAngle); // turns to the opposite side the same amount that it had turned in total
+    MotorDC::SetMotorPosition(-totalAngle); // turns to the opposite side the same amount that it had turned in total
   }
   void TurnBack () // Turns in the other direction the same amount of angle that earlier was turned
   {
-    M.SetMotorPosition(-lastAngle); // turns the same amount that he has turned the last time
+    MotorDC::SetMotorPosition(-lastAngle); // turns the same amount that he has turned the last time
   }
 };
 
@@ -207,6 +208,8 @@ void setup() {
 
   Serial.begin(9600);
 }
+
+//Changed the code so I can try to make the system's model
 
 void loop() {
   // put your main code here, to run repeatedly:
