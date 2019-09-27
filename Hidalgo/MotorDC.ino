@@ -1,6 +1,7 @@
 #define SLOW 150
 #define FAST 50
-
+#define MAX_ANGLE 340
+#define CHECK 4
 
 //DC MOTOR CHARACTERISTICS
 #define DC_V 12 //The motor's DC Voltage
@@ -58,6 +59,8 @@ int CheckSpeed (int Speed, int Voltage) // Simple check so that the speed isn't 
 class Potentiometer
 {
   int pin_POT; // pin use to read the potentiometer analog input
+  int input; // variable used to store the analog reads
+  int lastInput; // variable used to store the previous read
 
 public:
   //CONSTRUCTOR
@@ -71,14 +74,71 @@ public:
   {
     return pin_POT;
   }
-  float ReadAngle()
+  float ReadAngle(Direction Dir = RIGHT)
   {
     float angle; // value of the angle read by the analog input
-    angle = map(analogRead(pin_POT), 0, 360, 0, 255); // translates the value of the reading to an angle
-    if(angle >= 0)
-      return angle;
+    if(Potentiometer::CheckNoise(DIR))
+      angle = map(input, 0, 360, 0, 255); // translates the value of the reading to an angle
+
     Serial.println("ERROR Angle here can't be negative");
     return -1; // ERROR
+  }
+  bool CheckNoise(Direction Dir = RIGHT) // Function responsible to avoid the fake values
+  {
+    bool output[MAX_CHECK];
+    int error = 0;
+
+    for(int i = 0; i < MAX_CHECK; i++)
+    {
+      input = analogRead(A0);
+
+      /*
+      //PRINTED CHECK
+      Serial.println("**********************");
+      Serial.println(i);
+      Serial.print("INPUT: ");
+      Serial.println(input); // prints the value of the analogRead
+      Serial.print("LAST INPUT: ");
+      Serial.println(lastInput); // prints the value of the analogRead
+      Serial.println("**********************");*/
+
+      if(Dir == RIGHT)
+      {
+        if(input >= lastInput)
+          output[i] = true;
+        else
+          output[i] = false;
+      }
+      else if(Dir == LEFT)
+      {
+        if(input <= lastInput)
+          output[i] = true;
+        else
+          output[i] = false;
+      }
+      else
+        output[i] = false;
+      lastInput = input;
+
+      //PRINTED CHECK
+      /*
+      Serial.print("Output[i]: ");
+      Serial.println(output[i]);
+      */
+    }
+    for(int i = 0; i< MAX_CHECK; i++)
+    {
+      if(output[i] == false)
+        error++;
+    }
+    /*
+    Serial.print("ERROR = ");
+    Serial.println(error);
+    */
+    if(error > 0 )
+      return false;
+    else
+      return true;
   }
   void PrintAngle ()
   {
