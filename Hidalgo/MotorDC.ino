@@ -229,7 +229,7 @@ public:
     Serial.print("TIME PER REV = ");
     Serial.println(time_delay);
 
-    if(angle > 0 )
+    if(angle > lastAngle)
     {
       MotorDC::setDIR(RIGHT); // assuming the positive value should be RIGHT
     }
@@ -247,8 +247,6 @@ public:
 
     totalAngle += (angle - lastAngle); // accumulates the angle at which the motor is right now
     lastAngle = angle; // updates the angle to the current value
-
-
   }
   void TurnToZero () // Function that allows the motor to return to 0;
   {
