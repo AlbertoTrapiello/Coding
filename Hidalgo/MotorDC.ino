@@ -57,8 +57,96 @@ int CheckSpeed (int Speed, int Voltage) // Simple check so that the speed isn't 
   return -1;
 }
 
+//OBSERVABLE
+
+class Observable
+{
+	bool changed; // variable wich states if the observable has Changed
+	int value; // value to be observed, so that when it changes the Observer can be notified
+	vector <SujetoConcreto> observers; // list of observers
+	int index = 0; // index of the recently created object of the vector
+
+/*
+protected:
+	void setChanged() // NO IDEA
+	{
+
+	}
+	void clearChanged() // NO IDEA
+	{
+
+	}
+*/
+
+public:
+	~Observable()
+	{
+
+	}
+	void setValue(int v)
+	{
+		value = v; // changes the value to the new value
+		Observable::hasChanged(); // notifies the observers
+		cout << "New value: " << value << endl;
+	}
+	int getValue()
+	{
+		return value; // returns the value
+	}
+	void decreaseIndex()
+	{
+		for (int i = 0; i < observers.size(); i++)
+		{
+			if (observers[i].getIndex() > 0)
+			{
+				cout << "The observer[" << i << "] had previously as index: " << observers[i].getIndex() << endl;
+				observers[i].setIndex(observers[i].getIndex() - 1); // it reduces in 1 all the indexes from all the elements from the vector
+				cout << "The observers[" << i << "]'s index is: " << observers[i].getIndex() << endl;
+			}
+		}
+	}
+	void addObserver(SujetoConcreto & o)
+	{
+		o.setIndex(index); // each SujetoConcreto of the vector has it's own position
+		observers.push_back(o); // when a new SujetoConcreto wish to observe the variable it needs to attach to the vector so it can be notified as the rest
+		cout << "The index given to this observer is: " << index << " and the observer has " << o.getIndex() << endl;
+		index++; // each time an element is deleted the index increases
+	}
+	void deleteObserver(SujetoConcreto & o)
+	{
+		if (o.getIndex() < index)
+		{
+			cout << "Deleted observer has " << o.getIndex() << " as index, and the actual index is " << index << endl;
+			observers.erase(observers.begin() + o.getIndex()); // erases the vector's object wich position is the one dictated by the object
+			Observable::decreaseIndex(); // it changes all the indexes from the vector
+			index--; // each time an element is deleted the index decreases
+			cout << "The new index is: " << index << endl;
+		}
+		else
+			cout << "Couldn't delete the observer" << endl; //
+	}
+	void deleteObservers(SujetoConcreto & o)
+	{
+		observers.clear(); // deletes all the objects from the vector
+		index = 0; // if all the elements of the vector are deleted tha inde goes to 0
+	}
+	int countObservers()
+	{
+		return observers.size(); // returns the size of the vector
+	}
+	void hasChanged()
+	{
+		Observable::notifyObservers(value); // when a changes happends it notifies the changes to the observers
+	}
+	void notifyObservers(int & arg)
+	{
+		for (int i = 0; i < observers.size(); i++)
+			observers[i].update(value); // for each element from the vector, it should be responsible of updating himself
+	}
+};
+
 //POTENTIOMETER
-class Potentiometer
+class Potentiometer: public Observable
 {
   int pin_POT; // pin use to read the potentiometer analog input
   int input; // variable used to store the analog reads
@@ -80,8 +168,10 @@ public:
   {
     float angle; // value of the angle read by the analog input
     if(Potentiometer::CheckNoise(Dir))
+    {
       angle = map(input, 0, 360, 0, 255); // translates the value of the reading to an angle
-
+      Observable::hasChanged(); // every time it reads the value of the potentiomenter it notifies the observers
+    }
     Serial.println("ERROR Angle here can't be negative");
     return -1; // ERROR
   }
@@ -150,8 +240,29 @@ public:
   }
 };
 
+class Observer // clase interfaz para los observadores
+{
+protected:
+	int Index = -1; // index wich allows to find each observer in the vector
+
+public:
+	int getIndex()
+	{
+		return Index; // returns the value of the index
+	}
+	void setIndex(int i)
+	{
+		Index = i; // sets the value for the index
+	}
+	~Observer()
+	{
+
+	}
+	virtual void update(int & v) = 0; // every observer can react different to the changes
+};
+
 //MOTOR
-class MotorDC
+class MotorDC: public Observer
 {
   //PINS
   int pin_DIR; // pin used to decide in wich direction does the motor rotate
@@ -171,16 +282,17 @@ class MotorDC
   int totalAngle = 0; // Value of the accumulated turns
   int zeroAngle = 0; // Value of the analogRead of the Zero
   //POTENTIOMETER
-  Potentiometer potentiometer; //object from the class potentiometer, used to establish the angle of the rotation
+  //Potentiometer potentiometer; //object from the class potentiometer, used to establish the angle of the rotation
+  int POT_measure = 0; // variable wich saves the value of the pot reading
 
 public:
 
   //CONSTRUCTOR
-  MotorDC():potentiometer()
+  MotorDC()//:potentiometer()
   {
      pin_DIR= 2; // by default these is supposed to be the direction pin
      pin_PWM = 3; // by default these is supposed to be the pwm pin
-     pin_POS = potentiometer.getpin_POT(); // it reads the supposed pin for the potentiometer
+     //pin_POS = potentiometer.getpin_POT(); // it reads the supposed pin for the potentiometer
      Voltage = 12; // by default it's supposed to be connected to 12 V
      lastSpeed = 0; // by default it's supposed to start stopped
      zeroAngle = lastAngle = potentiometer.ReadAngle(NONE); // start reading the position
@@ -220,7 +332,7 @@ public:
     lastDIR = dir; // actualize the lastDIR value
     digitalWrite(pin_DIR, dir); // set direction in wich the motor turns
   }
-  void SetMotorPosition(float angle) // rotates the motor until de potentiometer says that it just reached the angle
+  void SetMotorPosition(float angle) // rotates the motor without feedback
   {
     int time_delay = 0; // Time that the motor takes to turn 360º
     int Speed = NL_rpm*1; // Speed at wich the motor turns
@@ -256,34 +368,29 @@ public:
   {
     MotorDC::SetMotorPosition(-lastAngle); // turns the same amount that he has turned the last time
   }
-  void ReadAngle ()
+  /*void ReadAngle () // SHOULD DO THE UPDATE
   {
     potentiometer.ReadAngle(lastDIR); // Reads the actual angle of the potentiometer
     potentiometer.PrintAngle(); // pritns the value readed
+  }*/
+  void update(int & v)
+  {
+    POT_measure = val; // saves the value of the measure in the variable
+    Serial.println("Updated the value correctly");
+    Serial.println(val);
   }
 };
 
-MotorDC M;
+MotorDC M; // the motor object
+Potentiometer P; // the potentiometer object
 
-void setup() {
-  // put your setup code here, to run once:
-
-  pinMode(M.getpin_PWM(), OUTPUT); //establish the pin for the PWM
-  pinMode(M.getpin_DIR(), OUTPUT); //establish the pin for the DIR
-  pinMode(M.getpin_POT(),INPUT); //establish the pin for the POT
-
-  Serial.begin(9600);
-}
-
-//Changed the code so I can try to make the system's model
-
-void loop() {
-  // put your main code here, to run repeatedly:
-
+//MOTOR'S FUNCTION
+void MotorFunction()
+{
   //TURNS 45 DEGREES
   M.SetMotorPosition(45);
   delay(500);
-  M.ReadAngle();
+  //M.ReadAngle();
   M.TurnBack(); // Goes Back the same amount that it turned last time
   //TURNS 90 DEGREES
   M.SetMotorPosition(90);
@@ -297,4 +404,33 @@ void loop() {
   M.SetMotorPosition(360);
   delay(500);
   M.TurnBack();
+}
+
+// THREADS SETUP
+// It's suppoused that the main loop should have the least demanding task, iin this case the potentiometer's read
+TimedAction MotorThread = TimedAction(700, MotorFunction); // creates a thread that is going to run the motor's code
+
+void setup() {
+  // put your setup code here, to run once:
+
+  pinMode(M.getpin_PWM(), OUTPUT); //establish the pin for the PWM
+  pinMode(M.getpin_DIR(), OUTPUT); //establish the pin for the DIR
+  pinMode(M.getpin_POT(), INPUT); //establish the pin for the POT
+
+  Serial.begin(9600);
+}
+
+//Changed the code so I can try to make the system's model
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+  P.addObserver(M); // adds the observer to the vector of the observable
+
+  P.ReadAngle(); // reads the Angle of the potentiometer, and it should notify the Observers
+  P.PrintAngle(); // to check the value with the updated one
+
+  // THREADS CHECK
+  MotorThread.check(); // checks the thread, each loop it must check at least one time
+
 }
