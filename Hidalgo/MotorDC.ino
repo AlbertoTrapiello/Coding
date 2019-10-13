@@ -110,17 +110,17 @@ class MotorDC: public Observer
 public:
 
   //CONSTRUCTOR
-  MotorDC()//:potentiometer()
+  MotorDC()
   {
      pin_DIR= 2; // by default these is supposed to be the direction pin
      pin_PWM = 3; // by default these is supposed to be the pwm pin
      //pin_POS = potentiometer.getpin_POT(); // it reads the supposed pin for the potentiometer
      Voltage = 12; // by default it's supposed to be connected to 12 V
      lastSpeed = 0; // by default it's supposed to start stopped
-     zeroAngle = lastAngle = potentiometer.ReadAngle(NONE); // start reading the position
+     //zeroAngle = lastAngle = potentiometer.ReadAngle(NONE); // start reading the position
   }
 
-  MotorDC(int dir, int pwm, float V = DC_V): potentiometer(), pin_DIR(dir), pin_PWM(pwm), Voltage(V) {}
+  MotorDC(int dir, int pwm, float V = DC_V): pin_DIR(dir), pin_PWM(pwm), Voltage(V) {}
 
   //FUNCTIONS
 
@@ -133,10 +133,7 @@ public:
   {
     return pin_PWM;
   }
-    int getpin_POT()
-  {
-    return potentiometer.getpin_POT();
-  }
+
   void setDIR (int dir, bool brake = true) // it changes the direction. taking care of slowing down first if needed.
   {
     /*
@@ -263,7 +260,7 @@ public:
     if (o.getIndex() < index)
     {
       //cout << "Deleted observer has " << o.getIndex() << " as index, and the actual index is " << index << endl;
-      observers.erase(observers.begin() + o.getIndex()); // erases the vector's object wich position is the one dictated by the object
+      observers.remove(&observers.front() + o.getIndex()); // erases the vector's object wich position is the one dictated by the object
       Observable::decreaseIndex(); // it changes all the indexes from the vector
       index--; // each time an element is deleted the index decreases
       //cout << "The new index is: " << index << endl;
@@ -420,7 +417,7 @@ void setup() {
 
   pinMode(M.getpin_PWM(), OUTPUT); //establish the pin for the PWM
   pinMode(M.getpin_DIR(), OUTPUT); //establish the pin for the DIR
-  pinMode(M.getpin_POT(), INPUT); //establish the pin for the POT
+  pinMode(P.getpin_POT(), INPUT); //establish the pin for the POT
 
   Serial.begin(9600);
 }
