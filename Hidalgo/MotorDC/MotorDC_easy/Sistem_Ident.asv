@@ -1,0 +1,45 @@
+x_range = 'E262:E525'; %range of the cells for the x (time) values
+y_range = 'G262:G525'; %range of the cells for the y (angle) values
+
+y = xlsread('Excel Datos.xlsx', 'Data', x_range);
+x = xlsread('Excel Datos.xlsx', 'Data', y_range);
+
+plot(x,y,'g'); %represents the function of the system
+
+u = ones(264,1); %vector of ones to make an step input
+for k=1:264, u(k,1) = 90; end %making the step input into an 90 degrees step
+
+xlabel('time (ms)');  ylabel('Angle (degrees)'); %sets the axis labels
+hold on; plot(x,u,'r'); %adds the 90 degrees step to compare
+
+ident(); %calls the ident functionto estimate the transfer function of the sistem
+
+G1=tf(P1);
+G1I=tf(P1I);
+G1Z=tf(P1Z);
+G1D=tf(P1D);
+G1DI=tf(P1DI);
+G1DZ=tf(P1DZ);
+G1IZ=tf(P1IZ);
+G1DIZ=tf(P1DIZ);
+
+%hold on; step(90*G1); %with this we can adjust the ident moel so that it mimics the real sistem
+%hold on; step(90*G1I); %with this we can adjust the ident moel so that it mimics the real sistem
+%hold on; step(90*G1Z); %with this we can adjust the ident moel so that it mimics the real sistem
+%hold on; step(90*G1D); %with this we can adjust the ident moel so that it mimics the real sistem
+%hold on; step(90*G1DI); %with this we can adjust the ident moel so that it mimics the real sistem
+%hold on; step(90*G1DZ); %with this we can adjust the ident moel so that it mimics the real sistem
+%hold on; step(90*G1IZ); %with this we can adjust the ident moel so that it mimics the real sistem
+%hold on; step(90*G1DIZ); %with this we can adjust the ident moel so that it mimics the real sistem
+hold on; step(90*G2); %with this we can adjust the ident moel so that it mimics the real sistem
+hold on; step(90*G2I); %with this we can adjust the ident moel so that it mimics the real sistem
+hold on; step(90*G2Z); %with this we can adjust the ident moel so that it mimics the real sistem
+hold on; step(90*G2D); %with this we can adjust the ident moel so that it mimics the real sistem
+hold on; step(90*G2DI); %with this we can adjust the ident moel so that it mimics the real sistem
+hold on; step(90*G2DZ); %with this we can adjust the ident moel so that it mimics the real sistem
+hold on; step(90*G2IZ); %with this we can adjust the ident moel so that it mimics the real sistem
+hold on; step(90*G2DIZ); %with this we can adjust the ident moel so that it mimics the real sistem
+
+legend({'y1','step','G1','G1Z','G1I','G1D','G1DI','GDZ','G1IZ','G1DIZ'}); % sets the name of the graph showing
+
+

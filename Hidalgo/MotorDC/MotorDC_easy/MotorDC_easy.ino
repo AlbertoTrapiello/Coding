@@ -11,7 +11,7 @@
 #define MAX_CHECK 4 // number of consecutive checks that the potentiometer does before assuring is a correct value
 #define INC 2 // small increment to check the noise to avoid false readings
 #define TIME_READ 1 // time between readings so that it can detect an error
-#define T_GRAF // time it waits after the motor have reached the position to have more data for the model
+#define T_GRAF 3000 // time it waits after the motor have reached the position to have more data for the model
 
 //DC MOTOR CHARACTERISTICS
 #define DC_V 12 //The motor's DC Voltage
